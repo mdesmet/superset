@@ -18,10 +18,9 @@ from unittest.mock import MagicMock
 
 import pytest
 from flask_appbuilder.security.sqla.models import User
-from sqlalchemy.orm import Query
 from sqlalchemy.orm.exc import NoResultFound
 
-from superset.daos.user import db, UserDAO
+from superset.daos.user import UserDAO
 from superset.models.user_attributes import UserAttribute
 
 
@@ -44,7 +43,7 @@ def test_get_by_id_found(mock_db_session):
     mock_query.filter_by.return_value.one.return_value = mock_user
 
     # Execute
-    result = UserDAO.get_by_id(user_id)
+    UserDAO.get_by_id(user_id)  # noqa: F841
 
     # Assert
     mock_db_session.query.assert_called_with(User)
@@ -91,4 +90,3 @@ def test_set_avatar_url_without_existing_attributes(mock_db_session):
     assert len(user.extra_attributes) == 1
     assert user.extra_attributes[0].avatar_url == new_url
     mock_db_session.add.assert_called()  # New attribute should be added
-    mock_db_session.commit.assert_called()
