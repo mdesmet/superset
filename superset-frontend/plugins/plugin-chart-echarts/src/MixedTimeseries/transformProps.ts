@@ -27,6 +27,7 @@ import {
   ensureIsArray,
   GenericDataType,
   getCustomFormatter,
+  getMetricLabel,
   getNumberFormatter,
   getXAxisLabel,
   isDefined,
@@ -78,6 +79,7 @@ import {
   extractForecastValuesFromTooltipParams,
   formatForecastTooltipSeries,
   rebaseForecastDatum,
+  reorderForecastSeries,
 } from '../utils/forecast';
 import { convertInteger } from '../utils/convertInteger';
 import { defaultGrid, defaultYAxis } from '../defaults';
@@ -290,12 +292,20 @@ export default function transformProps(
   const showValueIndexesB = extractShowValueIndexes(rawSeriesB, {
     stack,
   });
+
+  const metricsLabels = metrics
+    .map(metric => getMetricLabel(metric, undefined, undefined, verboseMap))
+    .filter((label): label is string => label !== undefined);
+  const metricsLabelsB = metricsB.map((metric: QueryFormMetric) =>
+    getMetricLabel(metric, undefined, undefined, verboseMap),
+  );
+
   const { totalStackedValues, thresholdValues } = extractDataTotalValues(
     rebasedDataA,
     {
       stack,
       percentageThreshold,
-      xAxisCol: xAxisLabel,
+      metricsLabels,
     },
   );
   const {
@@ -304,7 +314,7 @@ export default function transformProps(
   } = extractDataTotalValues(rebasedDataB, {
     stack: Boolean(stackB),
     percentageThreshold,
-    xAxisCol: xAxisLabel,
+    metricsLabels: metricsLabelsB,
   });
 
   annotationLayers
@@ -517,7 +527,9 @@ export default function transformProps(
       minorTick: { show: minorTicks },
       minInterval:
         xAxisType === AxisType.Time && timeGrainSqla
-          ? TIMEGRAIN_TO_TIMESTAMP[timeGrainSqla]
+          ? TIMEGRAIN_TO_TIMESTAMP[
+              timeGrainSqla as keyof typeof TIMEGRAIN_TO_TIMESTAMP
+            ]
           : 0,
       ...getMinAndMaxFromBounds(
         xAxisType,
@@ -661,7 +673,7 @@ export default function transformProps(
         .map(entry => entry.name || '')
         .concat(extractAnnotationLabels(annotationLayers, annotationData)),
     },
-    series: dedupSeries(series),
+    series: dedupSeries(reorderForecastSeries(series) as SeriesOption[]),
     toolbox: {
       show: zoomable,
       top: TIMESERIES_CONSTANTS.toolboxTop,
